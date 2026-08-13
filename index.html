@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>よみかげ - テキスト読み上げ</title>
+<title>TEKIYOMI - テキスト読み上げ</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -64,8 +64,8 @@
   }
   .app-title {
     font-size: 22px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     color: var(--text);
   }
   .app-sub {
@@ -91,9 +91,33 @@
     margin-bottom: 10px;
   }
 
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-head .section-label { margin-bottom: 0; }
+
+  .edit-btn {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .edit-btn:active { transform: scale(0.96); }
+
   textarea {
     width: 100%;
-    min-height: 160px;
+    min-height: 300px;
     background: var(--surface2);
     border: 0.5px solid var(--border);
     border-radius: var(--radius-sm);
@@ -113,9 +137,45 @@
     color: var(--text2);
   }
 
+  .reader {
+    display: none;
+    width: 100%;
+    min-height: 300px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.9;
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .seg {
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  @media (hover: hover) {
+    .seg:hover { background: var(--accent-light); }
+  }
+  .seg.current {
+    background: var(--accent-light);
+    color: var(--accent-text);
+  }
+
   .char-count {
     text-align: right;
     font-size: 12px;
+    color: var(--text2);
+    margin-top: 6px;
+  }
+  .reader-hint {
+    display: none;
+    font-size: 11px;
     color: var(--text2);
     margin-top: 6px;
   }
@@ -219,6 +279,13 @@
     align-items: center;
   }
 
+  .controls-card {
+    position: sticky;
+    bottom: 10px;
+    z-index: 5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
   .btn-play {
     flex: 1;
     background: var(--accent);
@@ -315,7 +382,7 @@
     font-size: 12px;
     color: var(--amber);
     line-height: 1.5;
-    margin-top: 6px;
+    margin-bottom: 12px;
   }
 
   .voice-select-row {
@@ -352,14 +419,19 @@
 <body>
 
 <div class="app-header">
-  <div class="app-title">よみかげ</div>
+  <div class="app-title">TEKIYOMI</div>
   <div class="app-sub">テキスト読み上げアプリ</div>
 </div>
 
 <div class="card">
-  <div class="section-label">テキスト</div>
+  <div class="card-head">
+    <div class="section-label">テキスト</div>
+    <button class="edit-btn" id="editBtn" onclick="backToEdit()">✏️ テキストを編集</button>
+  </div>
   <textarea id="inputText" placeholder="読み上げたいテキストをここに貼り付けてください。文字数制限はありません。"></textarea>
+  <div class="reader" id="readerView"></div>
   <div class="char-count"><span id="charCount">0</span> 文字</div>
+  <div class="reader-hint" id="readerHint">文をタップすると、その場所から読み上げます</div>
 </div>
 
 <div class="card">
@@ -392,7 +464,7 @@
   <div class="section-label">読み上げ速度</div>
   <div class="speed-row">
     <span class="speed-label">遅い</span>
-    <input type="range" id="speedRange" min="1.0" max="4.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+    <input type="range" id="speedRange" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
     <span class="speed-label" style="text-align:right">速い</span>
     <span class="speed-val" id="speedVal">×1.0</span>
   </div>
@@ -405,13 +477,15 @@
   </div>
 </div>
 
-<div class="card">
+<div class="notice" id="noticeBox" style="display:none"></div>
+
+<div class="card controls-card">
   <div class="controls">
     <button class="btn-play" id="playBtn" onclick="togglePlay()">
       <span id="playIcon">▶</span>
       <span id="playText">読み上げ開始</span>
     </button>
-    <button class="btn-stop" id="stopBtn" onclick="stopReading()" disabled>■</button>
+    <button class="btn-stop" id="stopBtn" onclick="stopReading()" disabled aria-label="停止">■</button>
   </div>
 
   <div class="status-bar" style="margin-top: 10px;">
@@ -424,19 +498,23 @@
   </div>
 </div>
 
-<div class="notice" id="noticeBox" style="display:none"></div>
-
 <script>
 let synth = window.speechSynthesis;
 let voices = [];
 let currentStyle = 'announcer-male';
 let currentVoiceURI = '';
-let isSpeaking = false;
-let isPaused = false;
 let currentSpeed = 1.0;
-let totalChunks = 0;
-let currentChunk = 0;
-let chunks = [];
+
+// 再生エンジンの状態（文単位で位置を管理する）
+let fullText = '';
+let segs = [];            // {text, start, end, speakable}
+let segIndex = 0;         // 今読んでいる（または再開位置の）文
+let playState = 'idle';   // 'idle' | 'playing' | 'paused'
+let readerMode = false;
+let speakToken = 0;       // 古い読み上げのコールバックを無効化するためのトークン
+let currentUtt = null;    // GC対策: 参照を保持しないとonendが来ないブラウザがある
+let wakeLock = null;
+let keepAlive = null;     // 無音ループ音声（バックグラウンド維持用）
 
 const styleParams = {
   'announcer-male':   { pitch: 0.85, rate: 0.92, gender: 'male' },
@@ -445,26 +523,44 @@ const styleParams = {
   'friend-female':    { pitch: 1.30, rate: 1.12, gender: 'female' },
 };
 
+// ---- 音声の選択 ----
+
+// 女性判定を先に行う（'male'が'female'に部分一致してしまうため）
+const FEMALE_KEYS = ['female', 'woman', 'onna', '女性', 'ayumi', 'haruka', 'sayaka', 'nanami', 'kyoko', 'mayu', 'o-ren'];
+const MALE_KEYS   = ['male', 'man', 'otoko', '男性', 'ichiro', 'keita', 'otoya', 'daichi', 'naoki', 'kenji', 'osamu', 'hattori'];
+
+function voiceGender(v) {
+  const n = v.name.toLowerCase();
+  for (const k of FEMALE_KEYS) if (n.includes(k)) return 'female';
+  for (const k of MALE_KEYS) if (n.includes(k)) return 'male';
+  return 'unknown';
+}
+
+function jaPool() {
+  const ja = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ja'));
+  return ja.length > 0 ? ja : voices;
+}
+
 function loadVoices() {
   voices = synth.getVoices();
-  const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
-  const allVoices = jaVoices.length > 0 ? jaVoices : voices;
-
   const sel = document.getElementById('voiceSelect');
-  sel.innerHTML = '';
 
-  if (allVoices.length === 0) {
+  if (voices.length === 0) {
     sel.innerHTML = '<option value="">音声が見つかりません</option>';
-    showNotice('このブラウザまたはデバイスでは音声が利用できない可能性があります。Google ChromeまたはSafariでお試しください。');
+    showNotice('このブラウザまたはデバイスでは音声が利用できない可能性があります。Google ChromeまたはSafariでお試しください。', 'voices');
     return;
   }
+
+  const pool = jaPool();
+  const prev = currentVoiceURI;
+  sel.innerHTML = '';
 
   const opt0 = document.createElement('option');
   opt0.value = '';
   opt0.textContent = '自動（スタイルに合わせて選択）';
   sel.appendChild(opt0);
 
-  allVoices.forEach(v => {
+  pool.forEach(v => {
     const opt = document.createElement('option');
     opt.value = v.voiceURI;
     const lang = v.lang ? ` [${v.lang}]` : '';
@@ -473,37 +569,40 @@ function loadVoices() {
     sel.appendChild(opt);
   });
 
-  currentVoiceURI = '';
+  // 選択済みの音声は維持する（voiceschangedは何度も発火する）
+  if (prev && pool.some(v => v.voiceURI === prev)) {
+    sel.value = prev;
+  } else {
+    sel.value = '';
+    currentVoiceURI = '';
+  }
+
+  hideNoticeIf('voices');
 }
 
 function getBestVoice(style) {
   const gender = styleParams[style].gender;
-  const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
-  const pool = jaVoices.length > 0 ? jaVoices : voices;
-
+  const pool = jaPool();
   if (pool.length === 0) return null;
 
-  const maleKeywords = ['male', 'man', 'otoko', 'たろ', 'ひろし', 'kenji', 'osamu', 'hattori'];
-  const femaleKeywords = ['female', 'woman', 'onna', 'kyoko', 'haruka', 'sakura', 'nanami', 'siri'];
-
-  const keywords = gender === 'male' ? maleKeywords : femaleKeywords;
-  const opposite = gender === 'male' ? femaleKeywords : maleKeywords;
-
-  let matched = pool.filter(v => keywords.some(k => v.name.toLowerCase().includes(k)));
-  if (matched.length === 0) {
-    let neutral = pool.filter(v => !opposite.some(k => v.name.toLowerCase().includes(k)));
-    if (neutral.length > 0) return neutral[0];
-    return pool[0];
-  }
-  return matched[0];
+  const score = v => {
+    const n = v.name.toLowerCase();
+    let s = 0;
+    const g = voiceGender(v);
+    if (g === gender) s += 100;
+    else if (g === 'unknown') s += 40;
+    if (n.includes('natural')) s += 30;  // Edgeの高品質音声を優先
+    if (n.includes('online')) s += 5;
+    if (v.default) s += 1;
+    return s;
+  };
+  return pool.slice().sort((a, b) => score(b) - score(a))[0];
 }
 
 function selectStyle(btn) {
   document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   currentStyle = btn.dataset.style;
-  const sel = document.getElementById('voiceSelect');
-  if (sel.value === '') currentVoiceURI = '';
 }
 
 function onVoiceSelect() {
@@ -520,131 +619,219 @@ function updateCharCount() {
   document.getElementById('charCount').textContent = len.toLocaleString();
 }
 
-function splitText(text) {
-  const maxLen = 200;
-  const result = [];
-  const sentences = text.split(/(?<=[。！？\n])/);
-  let current = '';
-  for (let s of sentences) {
-    if ((current + s).length > maxLen) {
-      if (current) { result.push(current.trim()); current = ''; }
-      if (s.length > maxLen) {
-        for (let i = 0; i < s.length; i += maxLen) {
-          result.push(s.slice(i, i + maxLen));
-        }
-      } else { current = s; }
-    } else { current += s; }
+// ---- テキストの分割（文単位・全文を隙間なくカバーする） ----
+
+function splitSegments(text) {
+  const MAX = 120;
+  const enders = '。！？!?\n';
+  const trailing = '」』）)”"';
+  const softs = '、,　 ';
+  const out = [];
+  let start = 0, soft = -1, i = 0;
+
+  const push = (end) => {
+    if (end > start) {
+      const t = text.slice(start, end);
+      out.push({ text: t, start: start, end: end, speakable: t.trim().length > 0 });
+      start = end;
+      soft = -1;
+    }
+  };
+
+  while (i < text.length) {
+    const ch = text[i];
+    if (enders.indexOf(ch) !== -1) {
+      let j = i + 1;
+      while (j < text.length && trailing.indexOf(text[j]) !== -1) j++;
+      push(j);
+      i = j;
+      continue;
+    }
+    if (softs.indexOf(ch) !== -1) soft = i + 1;
+    i++;
+    if (i - start >= MAX) {
+      push(soft > start ? soft : i);
+    }
   }
-  if (current.trim()) result.push(current.trim());
-  return result.filter(c => c.length > 0);
+  push(text.length);
+  return out;
 }
+
+// ---- リーダー表示（タップでその場所から再生） ----
+
+function renderReader() {
+  const rv = document.getElementById('readerView');
+  rv.innerHTML = '';
+  segs.forEach((s, i) => {
+    const span = document.createElement('span');
+    span.className = 'seg';
+    span.dataset.i = i;
+    span.textContent = s.text;
+    rv.appendChild(span);
+  });
+}
+
+function setHighlight(i) {
+  document.querySelectorAll('.seg.current').forEach(el => el.classList.remove('current'));
+  if (i == null) return;
+  const el = document.querySelector('.seg[data-i="' + i + '"]');
+  if (el) {
+    el.classList.add('current');
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function enterReaderMode() {
+  fullText = document.getElementById('inputText').value;
+  segs = splitSegments(fullText);
+  segIndex = 0;
+  renderReader();
+  readerMode = true;
+  document.getElementById('inputText').style.display = 'none';
+  document.getElementById('readerView').style.display = 'block';
+  document.getElementById('editBtn').style.display = 'inline-flex';
+  document.getElementById('readerHint').style.display = 'block';
+}
+
+function backToEdit() {
+  stopReading();
+  readerMode = false;
+  document.getElementById('inputText').style.display = 'block';
+  document.getElementById('readerView').style.display = 'none';
+  document.getElementById('editBtn').style.display = 'none';
+  document.getElementById('readerHint').style.display = 'none';
+}
+
+// ---- 再生コントロール ----
 
 function togglePlay() {
-  if (!isSpeaking && !isPaused) {
-    startReading();
-  } else if (isSpeaking && !isPaused) {
+  if (playState === 'playing') {
     pauseReading();
-  } else if (isPaused) {
-    resumeReading();
+  } else if (playState === 'paused') {
+    playFrom(segIndex);  // 止めた文の頭から再開
+  } else {
+    if (!synth) {
+      showNotice('お使いのブラウザは読み上げ機能に対応していません。');
+      return;
+    }
+    if (!readerMode) {
+      const text = document.getElementById('inputText').value;
+      if (!text.trim()) {
+        showNotice('テキストを入力してください。');
+        return;
+      }
+      enterReaderMode();
+    }
+    playFrom(0);
   }
 }
 
-function startReading() {
-  const text = document.getElementById('inputText').value.trim();
-  if (!text) {
-    showNotice('テキストを入力してください。');
-    return;
-  }
-  if (!synth) {
-    showNotice('お使いのブラウザは読み上げ機能に対応していません。');
-    return;
-  }
+function playFrom(index) {
+  while (index < segs.length && !segs[index].speakable) index++;
+  if (index >= segs.length) { onFinish(); return; }
 
+  hideNoticeIf('');
+  segIndex = index;
+  playState = 'playing';
+  const token = ++speakToken;
+
+  const wasBusy = synth.speaking || synth.pending;
   synth.cancel();
-  chunks = splitText(text);
-  totalChunks = chunks.length;
-  currentChunk = 0;
-  isSpeaking = true;
-  isPaused = false;
-  hideNotice();
+  startKeepAlive();
+  acquireWakeLock();
+  refreshButtons();
 
-  document.getElementById('stopBtn').disabled = false;
-  speakChunk(currentChunk);
+  if (wasBusy) {
+    // cancel直後のspeakが無視されるブラウザがあるため少し待つ
+    setTimeout(() => { if (token === speakToken) speakSeg(index, token); }, 60);
+  } else {
+    // 初回はユーザー操作の中で同期的にspeakする（iOS対策）
+    speakSeg(index, token);
+  }
 }
 
-function speakChunk(index) {
-  if (index >= totalChunks || !isSpeaking) {
-    onFinish();
-    return;
-  }
-  const utt = new SpeechSynthesisUtterance(chunks[index]);
+function speakSeg(index, token) {
+  if (token !== speakToken) return;
+  while (index < segs.length && !segs[index].speakable) index++;
+  if (index >= segs.length) { onFinish(); return; }
+
+  segIndex = index;
+  const utt = new SpeechSynthesisUtterance(segs[index].text.trim());
   const params = styleParams[currentStyle];
 
-  const voiceURI = currentVoiceURI || '';
   let voice = null;
-  if (voiceURI) {
-    voice = voices.find(v => v.voiceURI === voiceURI);
+  if (currentVoiceURI) {
+    voice = voices.find(v => v.voiceURI === currentVoiceURI) || null;
   }
-  if (!voice) {
-    voice = getBestVoice(currentStyle);
+  if (!voice) voice = getBestVoice(currentStyle);
+  if (voice) {
+    utt.voice = voice;
+    utt.lang = voice.lang;
+  } else {
+    utt.lang = 'ja-JP';
   }
-  if (voice) utt.voice = voice;
 
   utt.pitch = params.pitch;
-  utt.rate = params.rate * currentSpeed;
-  utt.lang = voice ? voice.lang : 'ja-JP';
+  utt.rate = Math.min(10, Math.max(0.1, params.rate * currentSpeed));
 
-  utt.onstart = () => {
-    currentChunk = index;
-    updateStatus('playing', `読み上げ中... (${index+1}/${totalChunks})`);
-    updateProgress(index, totalChunks);
-  };
   utt.onend = () => {
-    if (isSpeaking && !isPaused) {
-      speakChunk(index + 1);
-    }
+    if (token !== speakToken) return;
+    speakSeg(index + 1, token);
   };
   utt.onerror = (e) => {
-    if (e.error !== 'interrupted') {
-      console.warn('Speech error:', e.error);
-      speakChunk(index + 1);
-    }
+    if (token !== speakToken) return;
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    speakSeg(index + 1, token);  // エラーの文は飛ばして続ける
   };
 
+  currentUtt = utt;
+  setHighlight(index);
+  updateStatus('playing', '読み上げ中...');
+  updateProgress(segs[index].start, fullText.length);
   synth.speak(utt);
-  updatePlayBtn('pause');
 }
 
 function pauseReading() {
-  synth.pause();
-  isPaused = true;
-  updateStatus('paused', '一時停止中');
-  updatePlayBtn('resume');
-}
-
-function resumeReading() {
-  synth.resume();
-  isPaused = false;
-  updateStatus('playing', `読み上げ中... (${currentChunk+1}/${totalChunks})`);
-  updatePlayBtn('pause');
+  speakToken++;           // 以降の古いコールバックを無効化
+  synth.cancel();         // synth.pause()はAndroidで効かないため使わない
+  playState = 'paused';
+  stopKeepAlive();
+  releaseWakeLock();
+  refreshButtons();
+  updateStatus('paused', '一時停止中（▶で続きから再生）');
 }
 
 function stopReading() {
+  speakToken++;
   synth.cancel();
-  isSpeaking = false;
-  isPaused = false;
-  onFinish();
+  playState = 'idle';
+  segIndex = 0;
+  stopKeepAlive();
+  releaseWakeLock();
+  setHighlight(null);
+  refreshButtons();
+  updateStatus('idle', '停止しました');
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = '';
+  resetStatusSoon();
 }
 
 function onFinish() {
-  isSpeaking = false;
-  isPaused = false;
-  updatePlayBtn('play');
+  speakToken++;
+  playState = 'idle';
+  segIndex = 0;
+  stopKeepAlive();
+  releaseWakeLock();
+  setHighlight(null);
+  refreshButtons();
   updateStatus('idle', '完了');
-  updateProgress(totalChunks, totalChunks);
-  document.getElementById('stopBtn').disabled = true;
+  updateProgress(1, 1);
+  resetStatusSoon();
+}
+
+function resetStatusSoon() {
   setTimeout(() => {
-    if (!isSpeaking) {
+    if (playState === 'idle') {
       updateStatus('idle', '待機中');
       document.getElementById('progressBar').style.width = '0%';
       document.getElementById('progressText').textContent = '';
@@ -652,12 +839,13 @@ function onFinish() {
   }, 2000);
 }
 
-function updatePlayBtn(state) {
+function refreshButtons() {
   const icon = document.getElementById('playIcon');
   const text = document.getElementById('playText');
-  if (state === 'pause') { icon.textContent = '⏸'; text.textContent = '一時停止'; }
-  else if (state === 'resume') { icon.textContent = '▶'; text.textContent = '再開する'; }
+  if (playState === 'playing') { icon.textContent = '⏸'; text.textContent = '一時停止'; }
+  else if (playState === 'paused') { icon.textContent = '▶'; text.textContent = '続きから再生'; }
   else { icon.textContent = '▶'; text.textContent = '読み上げ開始'; }
+  document.getElementById('stopBtn').disabled = (playState === 'idle');
 }
 
 function updateStatus(state, msg) {
@@ -668,28 +856,100 @@ function updateStatus(state, msg) {
 }
 
 function updateProgress(cur, total) {
-  const pct = total > 0 ? Math.round((cur / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(100, Math.round((cur / total) * 100)) : 0;
   document.getElementById('progressBar').style.width = pct + '%';
-  document.getElementById('progressText').textContent = total > 1 ? (pct + '%') : '';
+  document.getElementById('progressText').textContent = pct > 0 ? (pct + '%') : '';
 }
 
-function showNotice(msg) {
+// ---- バックグラウンド再生の維持 ----
+
+// 無音のループ音声を再生して音声セッションを保つ（画面オフ時に再生が止まりにくくなる）
+function makeSilentAudio() {
+  const rate = 8000, n = rate;  // 1秒の無音
+  const buf = new ArrayBuffer(44 + n);
+  const v = new DataView(buf);
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); v.setUint32(4, 36 + n, true); ws(8, 'WAVE');
+  ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  ws(36, 'data'); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+  const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+  a.loop = true;
+  return a;
+}
+
+function startKeepAlive() {
+  try {
+    if (!keepAlive) keepAlive = makeSilentAudio();
+    const p = keepAlive.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
+}
+
+function stopKeepAlive() {
+  try { if (keepAlive) keepAlive.pause(); } catch (e) {}
+}
+
+// 読み上げ中は画面が自動で消えないようにする
+async function acquireWakeLock() {
+  try {
+    if (navigator.wakeLock && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) { wakeLock = null; }
+}
+
+function releaseWakeLock() {
+  try { if (wakeLock) wakeLock.release(); } catch (e) {}
+  wakeLock = null;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && playState === 'playing') {
+    acquireWakeLock();
+  }
+});
+
+// ---- 通知 ----
+
+function showNotice(msg, kind) {
   const n = document.getElementById('noticeBox');
   n.textContent = msg;
+  n.dataset.kind = kind || '';
   n.style.display = 'block';
 }
 function hideNotice() {
-  document.getElementById('noticeBox').style.display = 'none';
+  const n = document.getElementById('noticeBox');
+  n.style.display = 'none';
+  n.dataset.kind = '';
 }
+function hideNoticeIf(kind) {
+  const n = document.getElementById('noticeBox');
+  if (n.dataset.kind === kind) hideNotice();
+}
+
+// ---- 初期化 ----
 
 document.getElementById('inputText').addEventListener('input', updateCharCount);
 
-if (synth.onvoiceschanged !== undefined) {
+document.getElementById('readerView').addEventListener('click', (e) => {
+  const el = e.target.closest('.seg');
+  if (!el) return;
+  const i = parseInt(el.dataset.i, 10);
+  if (isNaN(i)) return;
+  playFrom(i);  // タップした文から再生（一時停止中・停止中でもそこから開始）
+});
+
+if (synth && synth.onvoiceschanged !== undefined) {
   synth.onvoiceschanged = loadVoices;
 }
-loadVoices();
-setTimeout(loadVoices, 500);
-setTimeout(loadVoices, 1500);
+if (synth) {
+  loadVoices();
+  setTimeout(loadVoices, 500);
+  setTimeout(loadVoices, 1500);
+}
 
 if (!window.speechSynthesis) {
   showNotice('このブラウザは音声読み上げに対応していません。SafariまたはGoogle Chromeをお使いください。');
