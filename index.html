@@ -3,139 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A0B0E">
 <title>TEKIYOMI - テキスト読み上げ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230A0B0E'/><path d='M38 30 L74 50 L38 70 Z' fill='%23D4FF3F'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   :root {
-    --bg: #f5f4f0;
-    --surface: #ffffff;
-    --surface2: #f0eee9;
-    --text: #1a1a18;
-    --text2: #6b6a66;
-    --border: rgba(0,0,0,0.12);
-    --accent: #4a3fb5;
-    --accent-light: #eeecfc;
-    --accent-text: #3730a3;
-    --green: #0f6e56;
-    --green-light: #e1f5ee;
-    --red: #c0392b;
-    --red-light: #fcebeb;
-    --amber: #854f0b;
-    --amber-light: #faeeda;
-    --radius: 14px;
-    --radius-sm: 8px;
+    color-scheme: dark;
+    --bg: #0A0B0E;
+    --surface: #14161B;
+    --surface2: #1D2026;
+    --surface3: #262A31;
+    --input-bg: #101216;
+    --text: #F4F5F0;
+    --text2: #8B909B;
+    --border: rgba(255,255,255,0.08);
+    --lime: #D4FF3F;
+    --lime-soft: rgba(212,255,63,0.14);
+    --lime-glow: rgba(212,255,63,0.35);
+    --violet: #8B5CF6;
+    --red: #FF6B6B;
+    --red-soft: rgba(255,107,107,0.15);
+    --amber: #FFC46B;
+    --amber-soft: rgba(255,196,107,0.12);
+    --radius: 20px;
+    --radius-sm: 14px;
+    --font-disp: 'Space Grotesk', -apple-system, sans-serif;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1c1b18;
-      --surface: #28271f;
-      --surface2: #32312a;
-      --text: #f0ede6;
-      --text2: #9e9b93;
-      --border: rgba(255,255,255,0.1);
-      --accent: #7f77dd;
-      --accent-light: #2a2660;
-      --accent-text: #c4bff8;
-      --green: #5dcaa5;
-      --green-light: #04342c;
-      --red: #f09595;
-      --red-light: #501313;
-      --amber: #ef9f27;
-      --amber-light: #412402;
-    }
-  }
+  ::selection { background: rgba(212,255,63,0.3); }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding: 16px 12px 32px;
+    padding: 20px 14px 36px;
     max-width: 480px;
     margin: 0 auto;
   }
 
+  /* 背景のオーロラグロー */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: -1;
+  }
+  body::before {
+    width: 380px; height: 380px;
+    top: -140px; right: -100px;
+    background: rgba(212,255,63,0.09);
+  }
+  body::after {
+    width: 420px; height: 420px;
+    bottom: -180px; left: -140px;
+    background: rgba(139,92,246,0.11);
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+
   .app-header {
     text-align: center;
-    margin-bottom: 20px;
-    padding-top: 8px;
+    margin-bottom: 22px;
+    padding-top: 10px;
+    animation: rise 0.45s both;
   }
   .app-title {
-    font-size: 22px;
+    font-family: var(--font-disp);
+    font-size: 30px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--text);
+    line-height: 1;
+  }
+  .logo-play {
+    color: var(--lime);
+    font-size: 0.72em;
+    margin: 0 2px;
+    text-shadow: 0 0 18px var(--lime-glow);
   }
   .app-sub {
-    font-size: 13px;
+    font-family: var(--font-disp);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.42em;
     color: var(--text2);
-    margin-top: 3px;
+    margin-top: 9px;
+    text-transform: uppercase;
   }
 
   .card {
     background: var(--surface);
     border-radius: var(--radius);
-    border: 0.5px solid var(--border);
-    padding: 16px;
-    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    padding: 18px;
+    margin-bottom: 14px;
+    animation: rise 0.45s both;
   }
+  .card:nth-of-type(2) { animation-delay: 0.05s; }
+  .card:nth-of-type(3) { animation-delay: 0.1s; }
 
   .section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-family: var(--font-disp);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
     color: var(--text2);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--lime);
+    border-radius: 2px;
+    flex-shrink: 0;
   }
 
   .card-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
   .card-head .section-label { margin-bottom: 0; }
 
   .edit-btn {
     display: none;
     align-items: center;
-    gap: 4px;
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
+    gap: 5px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 5px 12px;
+    padding: 6px 14px;
     font-size: 12px;
-    color: var(--text2);
+    font-weight: 500;
+    color: var(--text);
     cursor: pointer;
     font-family: inherit;
-    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s, border-color 0.15s;
   }
-  .edit-btn:active { transform: scale(0.96); }
+  .edit-btn:active { transform: scale(0.95); border-color: var(--lime); }
 
   textarea {
     width: 100%;
     min-height: 300px;
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 14px;
     font-size: 16px;
     color: var(--text);
     font-family: inherit;
-    line-height: 1.7;
+    line-height: 1.8;
     resize: vertical;
     outline: none;
-    transition: border-color 0.15s;
+    caret-color: var(--lime);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   textarea:focus {
-    border-color: var(--accent);
+    border-color: rgba(212,255,63,0.55);
+    box-shadow: 0 0 0 3px rgba(212,255,63,0.1);
   }
-  textarea::placeholder {
-    color: var(--text2);
-  }
+  textarea::placeholder { color: var(--text2); opacity: 0.7; }
 
   .reader {
     display: none;
@@ -143,253 +186,160 @@
     min-height: 300px;
     max-height: 60vh;
     overflow-y: auto;
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 14px;
     font-size: 16px;
     color: var(--text);
-    line-height: 1.9;
+    line-height: 2.0;
     white-space: pre-wrap;
     word-break: break-word;
-    -webkit-tap-highlight-color: transparent;
   }
+  .reader::-webkit-scrollbar { width: 8px; }
+  .reader::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 4px; }
+  .reader::-webkit-scrollbar-track { background: transparent; }
+
   .seg {
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 5px;
+    padding: 1px 2px;
     transition: background 0.15s;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
   @media (hover: hover) {
-    .seg:hover { background: var(--accent-light); }
+    .seg:hover { background: rgba(212,255,63,0.08); }
   }
   .seg.current {
-    background: var(--accent-light);
-    color: var(--accent-text);
+    background: var(--lime-soft);
+    color: #E9FFB0;
   }
 
   .char-count {
     text-align: right;
     font-size: 12px;
     color: var(--text2);
-    margin-top: 6px;
+    margin-top: 8px;
   }
+  .char-count span { font-family: var(--font-disp); font-weight: 500; }
   .reader-hint {
     display: none;
     font-size: 11px;
     color: var(--text2);
-    margin-top: 6px;
+    margin-top: 8px;
   }
 
   .voice-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 10px;
   }
 
   .voice-btn {
     background: var(--surface2);
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 12px 10px;
+    padding: 14px;
     cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+    transition: transform 0.1s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
     color: var(--text);
+    font-family: inherit;
   }
-  .voice-btn:active { transform: scale(0.97); }
+  .voice-btn:active { transform: scale(0.96); }
   .voice-btn.selected {
-    background: var(--accent-light);
-    border-color: var(--accent);
-    color: var(--accent-text);
+    background: var(--lime-soft);
+    border-color: var(--lime);
+    box-shadow: 0 0 20px rgba(212,255,63,0.12);
   }
 
-  .voice-icon {
-    font-size: 22px;
-    margin-bottom: 5px;
-    line-height: 1;
+  .voice-dot {
+    display: block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--surface3);
+    border: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 10px;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  .voice-btn.selected .voice-dot {
+    background: var(--lime);
+    border-color: var(--lime);
+    box-shadow: 0 0 10px var(--lime-glow);
   }
   .voice-name {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
+  .voice-btn.selected .voice-name { color: var(--lime); }
   .voice-desc {
     font-size: 11px;
     color: var(--text2);
     display: block;
-    line-height: 1.4;
-  }
-  .voice-btn.selected .voice-desc {
-    color: var(--accent-text);
-    opacity: 0.8;
+    line-height: 1.5;
   }
 
   .speed-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-top: 4px;
   }
   .speed-label {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text2);
     white-space: nowrap;
-    min-width: 36px;
   }
   input[type=range] {
     flex: 1;
-    height: 4px;
+    height: 5px;
     -webkit-appearance: none;
     appearance: none;
-    background: var(--border);
-    border-radius: 2px;
+    --fill: 14.3%;
+    background: linear-gradient(to right, var(--lime) var(--fill), rgba(255,255,255,0.12) var(--fill));
+    border-radius: 3px;
     outline: none;
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 22px; height: 22px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--lime);
     cursor: pointer;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    border: 4px solid #0F1013;
+    box-shadow: 0 0 12px var(--lime-glow);
   }
   input[type=range]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 15px; height: 15px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--lime);
     cursor: pointer;
-    border: none;
+    border: 4px solid #0F1013;
+    box-shadow: 0 0 12px var(--lime-glow);
+  }
+  input[type=range]::-moz-range-track {
+    height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px;
+  }
+  input[type=range]::-moz-range-progress {
+    height: 5px; background: var(--lime); border-radius: 3px;
   }
   .speed-val {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    min-width: 32px;
+    font-family: var(--font-disp);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--lime);
+    min-width: 42px;
     text-align: right;
   }
 
-  .controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .controls-card {
-    position: sticky;
-    bottom: 10px;
-    z-index: 5;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  }
-
-  .btn-play {
-    flex: 1;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 15px 20px;
-    font-size: 17px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: opacity 0.15s, transform 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-  .btn-play:active { transform: scale(0.97); opacity: 0.9; }
-  .btn-play:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-  .btn-stop {
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 15px 18px;
-    font-size: 17px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 0.15s, transform 0.1s;
-    color: var(--text);
-  }
-  .btn-stop:active { transform: scale(0.97); background: var(--red-light); color: var(--red); }
-  .btn-stop:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
-
-  .status-bar {
-    background: var(--surface2);
-    border-radius: var(--radius-sm);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 4px;
-  }
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border);
-    flex-shrink: 0;
-    transition: background 0.3s;
-  }
-  .status-dot.playing {
-    background: var(--green);
-    animation: pulse 1.2s infinite;
-  }
-  .status-dot.paused {
-    background: var(--amber);
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .status-text {
-    font-size: 13px;
-    color: var(--text2);
-    flex: 1;
-  }
-  .status-progress {
-    font-size: 12px;
-    color: var(--text2);
-    font-weight: 500;
-  }
-
-  .progress-bar-outer {
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-  .progress-bar-inner {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    width: 0%;
-    transition: width 0.3s;
-  }
-
-  .notice {
-    background: var(--amber-light);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--amber);
-    line-height: 1.5;
-    margin-bottom: 12px;
-  }
-
   .voice-select-row {
-    margin-top: 10px;
+    margin-top: 14px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   .voice-select-label {
     font-size: 12px;
@@ -398,74 +348,224 @@
   }
   select {
     flex: 1;
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 8px 10px;
+    min-width: 0;
+    background-color: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 32px 9px 12px;
     font-size: 13px;
     color: var(--text);
     font-family: inherit;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238B909B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
   }
-  select:focus { border-color: var(--accent); }
+  select:focus { border-color: rgba(212,255,63,0.55); }
 
   .divider {
-    height: 0.5px;
+    height: 1px;
     background: var(--border);
-    margin: 12px 0;
+    margin: 16px 0;
+  }
+
+  .notice {
+    background: var(--amber-soft);
+    border: 1px solid rgba(255,196,107,0.25);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-size: 12px;
+    color: var(--amber);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  /* プレイヤーバー */
+  .controls-card {
+    position: sticky;
+    bottom: 12px;
+    z-index: 5;
+    background: rgba(20,22,27,0.82);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.55);
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn-play {
+    flex: 1;
+    background: var(--lime);
+    color: #0A0B0E;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    box-shadow: 0 0 24px rgba(212,255,63,0.25);
+  }
+  .btn-play:active { transform: scale(0.97); opacity: 0.9; }
+  .btn-play:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  #playIcon { font-size: 13px; }
+
+  .btn-stop {
+    width: 54px; height: 54px;
+    flex-shrink: 0;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, color 0.15s;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-stop:active { transform: scale(0.94); background: var(--red-soft); color: var(--red); }
+  .btn-stop:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-top: 13px;
+    padding: 0 4px;
+  }
+
+  /* イコライザー（再生中にアニメーション） */
+  .status-dot {
+    display: flex;
+    align-items: flex-end;
+    gap: 2.5px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+  .status-dot i {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--text2);
+    opacity: 0.45;
+    transition: background 0.3s;
+  }
+  .status-dot i:nth-child(1) { height: 42%; }
+  .status-dot i:nth-child(2) { height: 75%; }
+  .status-dot i:nth-child(3) { height: 55%; }
+  .status-dot i:nth-child(4) { height: 90%; }
+  @keyframes eq {
+    0%, 100% { height: 28%; }
+    50% { height: 100%; }
+  }
+  .status-dot.playing i {
+    background: var(--lime);
+    opacity: 1;
+    animation: eq 0.9s ease-in-out infinite;
+  }
+  .status-dot.playing i:nth-child(2) { animation-delay: 0.16s; }
+  .status-dot.playing i:nth-child(3) { animation-delay: 0.32s; }
+  .status-dot.playing i:nth-child(4) { animation-delay: 0.48s; }
+  .status-dot.paused i {
+    background: var(--amber);
+    opacity: 1;
+  }
+
+  .status-text {
+    font-size: 13px;
+    color: var(--text2);
+    flex: 1;
+  }
+  .status-progress {
+    font-family: var(--font-disp);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--lime);
+  }
+
+  .progress-bar-outer {
+    height: 4px;
+    background: rgba(255,255,255,0.09);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--lime);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px var(--lime-glow);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
   }
 </style>
 </head>
 <body>
 
 <div class="app-header">
-  <div class="app-title">TEKIYOMI</div>
-  <div class="app-sub">テキスト読み上げアプリ</div>
+  <div class="app-title">TEKIY<span class="logo-play">▶</span>MI</div>
+  <div class="app-sub">Text to Voice Player</div>
 </div>
 
 <div class="card">
   <div class="card-head">
-    <div class="section-label">テキスト</div>
+    <div class="section-label">Text</div>
     <button class="edit-btn" id="editBtn" onclick="backToEdit()">✏️ テキストを編集</button>
   </div>
-  <textarea id="inputText" placeholder="読み上げたいテキストをここに貼り付けてください。文字数制限はありません。"></textarea>
+  <textarea id="inputText" placeholder="読み上げたいテキストをここに貼り付け。文字数は無制限。"></textarea>
   <div class="reader" id="readerView"></div>
   <div class="char-count"><span id="charCount">0</span> 文字</div>
-  <div class="reader-hint" id="readerHint">文をタップすると、その場所から読み上げます</div>
+  <div class="reader-hint" id="readerHint">文をタップすると、その場所から再生します</div>
 </div>
 
 <div class="card">
-  <div class="section-label">声のスタイル</div>
+  <div class="section-label">Voice Style</div>
   <div class="voice-grid">
     <button class="voice-btn selected" data-style="announcer-male" onclick="selectStyle(this)">
-      <div class="voice-icon">🎙️</div>
-      <span class="voice-name">アナウンサー風</span>
-      <span class="voice-desc">男性・落ち着いた声</span>
+      <span class="voice-dot"></span>
+      <span class="voice-name">アナウンサー</span>
+      <span class="voice-desc">男性・低めで落ち着き</span>
     </button>
     <button class="voice-btn" data-style="announcer-female" onclick="selectStyle(this)">
-      <div class="voice-icon">📻</div>
-      <span class="voice-name">アナウンサー風</span>
-      <span class="voice-desc">女性・聞き取りやすい声</span>
+      <span class="voice-dot"></span>
+      <span class="voice-name">アナウンサー</span>
+      <span class="voice-desc">女性・クリアな声</span>
     </button>
     <button class="voice-btn" data-style="friend-male" onclick="selectStyle(this)">
-      <div class="voice-icon">😄</div>
+      <span class="voice-dot"></span>
       <span class="voice-name">フレンドリー</span>
-      <span class="voice-desc">男性・友達みたいな話し方</span>
+      <span class="voice-desc">男性・気さくなトーン</span>
     </button>
     <button class="voice-btn" data-style="friend-female" onclick="selectStyle(this)">
-      <div class="voice-icon">😊</div>
+      <span class="voice-dot"></span>
       <span class="voice-name">フレンドリー</span>
-      <span class="voice-desc">女性・明るくカジュアル</span>
+      <span class="voice-desc">女性・明るくポップ</span>
     </button>
   </div>
 
   <div class="divider"></div>
 
-  <div class="section-label">読み上げ速度</div>
+  <div class="section-label">Speed</div>
   <div class="speed-row">
     <span class="speed-label">遅い</span>
     <input type="range" id="speedRange" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
-    <span class="speed-label" style="text-align:right">速い</span>
+    <span class="speed-label">速い</span>
     <span class="speed-val" id="speedVal">×1.0</span>
   </div>
 
@@ -488,8 +588,8 @@
     <button class="btn-stop" id="stopBtn" onclick="stopReading()" disabled aria-label="停止">■</button>
   </div>
 
-  <div class="status-bar" style="margin-top: 10px;">
-    <div class="status-dot" id="statusDot"></div>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"><i></i><i></i><i></i><i></i></div>
     <span class="status-text" id="statusText">待機中</span>
     <span class="status-progress" id="progressText"></span>
   </div>
@@ -612,6 +712,9 @@ function onVoiceSelect() {
 function updateSpeed(val) {
   currentSpeed = parseFloat(val);
   document.getElementById('speedVal').textContent = '×' + currentSpeed.toFixed(1);
+  const r = document.getElementById('speedRange');
+  const pct = ((currentSpeed - parseFloat(r.min)) / (parseFloat(r.max) - parseFloat(r.min))) * 100;
+  r.style.setProperty('--fill', pct + '%');
 }
 
 function updateCharCount() {
@@ -941,6 +1044,8 @@ document.getElementById('readerView').addEventListener('click', (e) => {
   if (isNaN(i)) return;
   playFrom(i);  // タップした文から再生（一時停止中・停止中でもそこから開始）
 });
+
+updateSpeed(document.getElementById('speedRange').value);
 
 if (synth && synth.onvoiceschanged !== undefined) {
   synth.onvoiceschanged = loadVoices;
